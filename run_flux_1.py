@@ -193,7 +193,12 @@ with torch.no_grad():
 print(f"\nSaving all {len(decoded_images)} decoded images...")
 for i, img in enumerate(decoded_images):
     # 使用索引 i 命名文件，确保每个文件都有唯一的名字
-    save_path = f" /apdcephfs_zwfy/share_304071302/marcuskwan/reward_model/output/flux/result_{i}.png"
+    save_path = f"/apdcephfs_zwfy/share_304071302/marcuskwan/reward_model/output/flux_1/result_{i}.png"
+    
+    # 创建保存目录（如果不存在）
+    save_dir = os.path.dirname(save_path)
+    os.makedirs(save_dir, exist_ok=True)
+    
     img.save(save_path)
     print(f"Saved image to: {save_path}")
 

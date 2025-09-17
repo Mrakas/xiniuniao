@@ -2,7 +2,7 @@
 # Launch the three Flux runners on separate machines with explicit CUDA device binding.
 set -euo pipefail
 
-ROOT_DIR="/mnt/sh/mmvision/home/marcuskwan/ghx/xiniiuniao"
+ROOT_DIR="/"
 SCRIPTS=(
   "run_flux_1.py"
   "run_flux_2.py"
