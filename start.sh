@@ -1,39 +1,36 @@
 #!/usr/bin/env bash
-# Launch the three Flux runners on separate machines with explicit CUDA device binding.
 set -euo pipefail
 
-ROOT_DIR="/"
-SCRIPTS=(
-  "run_flux_1.py"
-  "run_flux_2.py"
-  "run_flux_3.py"
-)
-# TODO: Replace these placeholders with the actual hostnames or SSH targets.
-HOSTS=(
-  "machine-a"
-  "machine-b"
-  "machine-c"
-)
-CUDA_VISIBLE=(
-  "0"
-  "0"
-  "0"
-)
+script_dir="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$script_dir"
 
-if [[ ${#SCRIPTS[@]} -ne 3 || ${#HOSTS[@]} -ne 3 || ${#CUDA_VISIBLE[@]} -ne 3 ]]; then
-  echo "The SCRIPTS, HOSTS, and CUDA_VISIBLE arrays must each contain exactly three entries." >&2
-  exit 1
-fi
+PYTHON_BIN=${PYTHON_BIN:-python}
 
-for idx in "${!SCRIPTS[@]}"; do
-  host="${HOSTS[$idx]}"
-  script="${SCRIPTS[$idx]}"
-  cuda_id="${CUDA_VISIBLE[$idx]}"
+GPU0=${1:-0}
+GPU1=${2:-1}
+GPU2=${3:-2}
 
-  echo "Launching ${script} on ${host} with CUDA_VISIBLE_DEVICES=${cuda_id}"
-  ssh "${host}" "cd \"${ROOT_DIR}\" && mkdir -p logs && CUDA_VISIBLE_DEVICES=${cuda_id} nohup python3 \"${ROOT_DIR}/${script}\" > logs/${script%.py}.log 2>&1 &" &
-done
+pids=()
 
-wait
+echo "Starting run_flux_1.py on GPU ${GPU0}"
+CUDA_VISIBLE_DEVICES="${GPU0}" "$PYTHON_BIN" run_flux_1.py &
+pids+=($!)
 
-echo "All launch commands have been issued."
+echo "Starting run_flux_2.py on GPU ${GPU1}"
+CUDA_VISIBLE_DEVICES="${GPU1}" "$PYTHON_BIN" run_flux_2.py &
+pids+=($!)
+
+echo "Starting run_flux_3.py on GPU ${GPU2}"
+CUDA_VISIBLE_DEVICES="${GPU2}" "$PYTHON_BIN" run_flux_3.py &
+pids+=($!)
+
+cleanup() {
+  trap - SIGINT SIGTERM
+  if [ ${#pids[@]} -gt 0 ]; then
+    kill "${pids[@]}" 2>/dev/null || true
+  fi
+}
+
+trap cleanup SIGINT SIGTERM
+
+wait "${pids[@]}"
